@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 )
 
 // Hello Hello world handler
 func Hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "hello world")
+	WriteJsonResponse(w, map[string]string{
+		"msg": "hello world",
+	}, http.StatusOK)
 }
