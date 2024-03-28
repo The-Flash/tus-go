@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/The-Flash/tus-go/internal/uid"
 )
@@ -19,7 +21,7 @@ func NewFileHandler() *FileHandler {
 
 // Path url to access file handler
 func (f *FileHandler) Path() string {
-	return "/files"
+	return "/files/"
 }
 
 func (f *FileHandler) Method() string {
@@ -34,7 +36,7 @@ func (f *FileHandler) Pattern() string {
 func (f *FileHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	fid := generateFileId()
 	url := absFileUrl(r, fid)
-	log.Println(url)
+	uploadMetadata := r.Header.Get("Upload-Metadata")
 	uploadLengthStr := r.Header.Get("Upload-Length")
 	uploadLength, err := strconv.Atoi(uploadLengthStr)
 	if err != nil {
@@ -42,9 +44,10 @@ func (f *FileHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	uploadMetadata := r.Header.Get("Upload-Metadata")
+	_ = uploadLength
 	w.Header().Set("Location", url)
-	log.Println(uploadLength, uploadMetadata)
+	metadata := parseUploadMetadataHeader(uploadMetadata)
+	log.Println(metadata)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -75,5 +78,26 @@ func generateFileId() string {
 }
 
 func parseUploadMetadataHeader(header string) map[string]string {
-	return map[string]string{}
+	metadata := make(map[string]string)
+	for _, element := range strings.Split(header, ",") {
+		element := strings.TrimSpace(element)
+		parts := strings.Split(element, " ")
+		if len(parts) > 2 {
+			continue
+		}
+		key := parts[0]
+		if key == "" {
+			continue
+		}
+		value := ""
+		if len(parts) == 2 {
+			dec, err := base64.StdEncoding.DecodeString(parts[1])
+			if err != nil {
+				continue
+			}
+			value = string(dec)
+		}
+		metadata[key] = value
+	}
+	return metadata
 }

@@ -15,6 +15,9 @@ func main() {
 	)
 	router := http.NewServeMux()
 	fileHandler := handlers.NewFileHandler()
+	uploadHandler := handlers.NewUploadHandler()
+	router.HandleFunc(uploadHandler.Pattern(), uploadHandler.Handler)
+
 	router.HandleFunc(fileHandler.Pattern(), fileHandler.Handler)
 	log.Println("server started on port " + port)
 	err := http.ListenAndServe(port, middlewareStack(router))
